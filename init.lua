@@ -59,6 +59,7 @@ local plugins = {
 		opts = {
 			ensure_installed = {
 				"pyright", -- LSP for python
+				"pylint", -- linter
 				"ruff", -- linter & formatter (includes flake8, pep8, black, isort, etc.)
 				"debugpy", -- debugger
 				"taplo", -- LSP for toml (e.g., for pyproject.toml files)
@@ -67,6 +68,21 @@ local plugins = {
 				"stylua", -- formatter
 			},
 		},
+	},
+	{
+		"mfussenegger/nvim-lint",
+		config = function()
+			local lint = require("lint")
+			lint.linters_by_ft = {
+				python = { "pylint" },
+			}
+
+			vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+				callback = function()
+					lint.try_lint()
+				end,
+			})
+		end,
 	},
 
 	-- Setup the LSPs
@@ -78,36 +94,26 @@ local plugins = {
 		keys = {
 			{ "gd", vim.lsp.buf.definition, desc = "Goto Definition" },
 			{ "gr", vim.lsp.buf.references, desc = "Goto References" },
-			{ "<leader>c", vim.lsp.buf.code_action, desc = "Code Action" },
+			-- { "<leader>c", vim.lsp.buf.code_action, desc = "Code Action" },
 			{ "<C-f>", vim.lsp.buf.format, desc = "Format File" },
 		},
 		dependencies = { "saghen/blink.cmp" },
+		lazy = false,
 		init = function()
-			-- this snippet enables auto-completion
-			local lspCapabilities = vim.lsp.protocol.make_client_capabilities()
-			lspCapabilities.textDocument.completion.completionItem.snippetSupport = true
+			local capabilities = require("blink.cmp").get_lsp_capabilities()
 
 			-- setup pyright with completion capabilities
-			require("lspconfig").pyright.setup({
-				capabilities = lspCapabilities,
+			vim.lsp.config("pyright", {
+				capabilities = capabilities,
 			})
+			vim.lsp.enable("pyright")
 
 			-- setup taplo with completion capabilities
-			require("lspconfig").taplo.setup({
-				capabilities = lspCapabilities,
+			vim.lsp.config("taplo", {
+				capabilities = capabilities,
 			})
+			vim.lsp.enable("taplo")
 
-			-- ruff uses an LSP proxy, therefore it needs to be enabled as if it
-			-- were a LSP. In practice, ruff only provides linter-like diagnostics
-			-- and some code actions, and is not a full LSP yet.
-			require("lspconfig").ruff.setup({
-				-- disable ruff as hover provider to avoid conflicts with pyright
-				on_attach = function(client)
-					client.server_capabilities.hoverProvider = false
-				end,
-			})
-
-			local capabilities = require("blink.cmp").get_lsp_capabilities()
 			vim.lsp.config("lua_ls", {
 				capabilities = capabilities,
 			})
@@ -395,7 +401,12 @@ local plugins = {
 			vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>fw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
 			vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "[S]earch existing [B]uffers" })
-			vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "[S]earch with [G]rep" })
+			vim.keymap.set(
+				"n",
+				"<leader>fc",
+				builtin.current_buffer_fuzzy_find,
+				{ desc = "[S]earch in [C]urrent buffer" }
+			)
 		end,
 	},
 
@@ -480,6 +491,43 @@ local plugins = {
 				},
 				tabline = {},
 				extensions = {},
+			},
+		},
+	},
+	{
+		"folke/trouble.nvim",
+		opts = {}, -- for default options, refer to the configuration section for custom setup.
+		cmd = "Trouble",
+		keys = {
+			{
+				"<leader>xx",
+				"<cmd>Trouble diagnostics toggle<cr>",
+				desc = "Diagnostics (Trouble)",
+			},
+			{
+				"<leader>xX",
+				"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+				desc = "Buffer Diagnostics (Trouble)",
+			},
+			{
+				"<leader>cs",
+				"<cmd>Trouble symbols toggle focus=false<cr>",
+				desc = "Symbols (Trouble)",
+			},
+			{
+				"<leader>cl",
+				"<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+				desc = "LSP Definitions / references / ... (Trouble)",
+			},
+			{
+				"<leader>xL",
+				"<cmd>Trouble loclist toggle<cr>",
+				desc = "Location List (Trouble)",
+			},
+			{
+				"<leader>xQ",
+				"<cmd>Trouble qflist toggle<cr>",
+				desc = "Quickfix List (Trouble)",
 			},
 		},
 	},
