@@ -25,6 +25,7 @@ vim.g.mapleader = " "
 vim.g.clipboard = "xclip"
 vim.o.clipboard = "unnamedplus"
 vim.opt.undofile = true
+vim.opt.number = true
 
 vim.keymap.set("i", "jj", "<C-c>", { desc = "Fast Escape" })
 vim.keymap.set("t", "jj", "<C-\\><C-n>", { desc = "Fast Escape" })
@@ -45,7 +46,17 @@ vim.keymap.set("n", "U", "<cmd>Lazy update<CR>", { desc = "update plugins" })
 
 local plugins = {
 	-- TOOLING: COMPLETION, DIAGNOSTICS, FORMATTING
-
+  {
+    "folke/lazydev.nvim",
+    ft = "lua", -- only load on lua files
+    opts = {
+      library = {
+        -- See the configuration section for more details
+        -- Load luvit types when the `vim.uv` word is found
+        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+      },
+    },
+  },
 	checker = { enabled = true },
 	-- MASON
 	-- * Manager for external tools (LSPs, linters, debuggers, formatters)
@@ -75,6 +86,7 @@ local plugins = {
 			local lint = require("lint")
 			lint.linters_by_ft = {
 				python = { "pylint" },
+        lua = { "luacheck" },
 			}
 
 			vim.api.nvim_create_autocmd({ "BufWritePost" }, {
@@ -136,6 +148,18 @@ local plugins = {
 			appearance = {
 				nerd_font_variant = "JetBrainsMono Nerd Font",
 			},
+      sources = {
+        -- add lazydev to your completion providers
+        default = { "lazydev", "lsp", "path", "snippets", "buffer" },
+        providers = {
+          lazydev = {
+            name = "LazyDev",
+            module = "lazydev.integrations.blink",
+            -- make lazydev completions top priority (see `:h blink.cmp`)
+            score_offset = 100,
+          },
+        },
+      },
 		},
 	},
 
@@ -372,10 +396,10 @@ local plugins = {
 	-- f-strings
 	-- * auto-convert strings to f-strings when typing `{}` in a string
 	-- * also auto-converts f-strings back to regular strings when removing `{}`
-	-- {
-	-- 	"chrisgrieser/nvim-puppeteer",
-	-- 	dependencies = "nvim-treesitter/nvim-treesitter",
-	-- },
+	{
+		"chrisgrieser/nvim-puppeteer",
+		dependencies = "nvim-treesitter/nvim-treesitter",
+	},
 	{
 		"folke/flash.nvim",
 		event = "VeryLazy",
@@ -397,6 +421,16 @@ local plugins = {
 		dependencies = { "nvim-lua/plenary.nvim" },
 		config = function()
 			require("telescope").load_extension("file_browser")
+      require("telescope").setup({
+        -- defaults = {
+        --   preview = false,
+        -- },
+        pickers = {
+          find_files = {
+            previewer = false,
+          }
+        }
+      })
 			local builtin = require("telescope.builtin")
 			vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "[S]earch [F]iles" })
 			vim.keymap.set("n", "<leader>fw", builtin.grep_string, { desc = "[S]earch current [W]ord" })
@@ -592,14 +626,13 @@ vim.api.nvim_create_autocmd("FileType", {
 
 -- Example init file showing how to use the buffer tracker plugin
 local samsara = require("samsara")
-
 -- Initialize the plugin
 samsara.setup()
 
-vim.keymap.set("n", "<leader>h", ":Groups<CR>", { desc = "Print Groups" })
-vim.keymap.set("n", "<leader>n", samsara.bnext, { desc = "Next Buffer" })
-vim.keymap.set("n", "<leader>p", samsara.bprev, { desc = "Previous Buffer" })
-vim.keymap.set("n", "<leader>t", ":tabnew<CR>", { desc = "New Tab" })
-vim.keymap.set("n", "<Tab>", ":tabnext<CR>", { desc = "Next Tab" })
-vim.keymap.set("n", "<S-Tab>", ":tabprev<CR>", { desc = "Previous Tab" })
-vim.keymap.set("n", "<leader>T", ":terminal<CR>", { desc = "New Terminal" })
+vim.keymap.set("n", "<leader>h", "<cmd>Groups<CR>", { desc = "Print Groups" })
+vim.keymap.set("n", "<C-n>", samsara.bnext, { desc = "Next Buffer" })
+vim.keymap.set("n", "<C-p>", samsara.bprev, { desc = "Previous Buffer" })
+vim.keymap.set("n", "<C-q>", "<cmd>bdelete<CR>", { desc = "Delete Buffer" })
+vim.keymap.set("n", "<leader>t", "<cmd>tabnew<CR>", { desc = "New Tab" })
+vim.keymap.set("n", "<Tab>", "<cmd>tabnext<CR>", { desc = "Next Tab" })
+vim.keymap.set("n", "<S-Tab>", "<cmd>tabprev<CR>", { desc = "Previous Tab" })
